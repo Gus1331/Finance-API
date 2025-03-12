@@ -1,0 +1,5 @@
+class Config:
+    ELASTIC_USERNAME = 'elastic'
+    ELASTIC_PASSWORD = 'nY5AQz37ZZIfMev9nY5AQz37ZZIfMev9'
+    ELASTICSEARCH_HOST = 'localhost'
+    ELASTICSEARCH_PORT = 9200
