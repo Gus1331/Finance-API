@@ -4,6 +4,7 @@ from flask_jwt_extended import JWTManager, jwt_required, create_access_token, ge
 from config import create_app
 from config import conect_elastic
 from uuid import uuid4
+from datetime import datetime
 
 app = create_app()
 es = conect_elastic(app)
@@ -21,7 +22,7 @@ class User(Resource):
         senha = data.get('senha')
         
         if not nome or not email or not senha:
-            return {'message': 'Todos os campos são obrigatórios!'}, 400
+            abort(400)
         
         busca = es.search(
             index='users', 
@@ -60,7 +61,7 @@ class Login(Resource):
         senha = data.get('senha')
 
         if not email or not senha:
-            return {"message": "Email ou senha em Branco!"}, 400
+            abort(400)
         
         busca = es.search(
             index='users', 
@@ -88,18 +89,53 @@ class FonteReceita(Resource):
     def post(self):
         data = request.get_json()
 
+        nome = data.get('nome')
+        fixo = data.get('fixo')
+
+        if not isinstance(nome, str) or not isinstance(fixo, bool):
+            abort(400)
+
         current_user = get_jwt_identity()
 
         font_receita = {
             'user': current_user,
+            'nome': nome,
+            'fixo': fixo,
+            'dtRegistro': datetime.now()
         }
+
+        try:
+            entityId = str(uuid4())
+            es.index(index='fontes_receitas', id=entityId, document=font_receita)
+            font_receita['_id'] = entityId
+            return jsonify(font_receita)
+        except Exception as e:
+            return {'message': f'Erro ao inserir dados no Elasticsearch: {e}'}, 500
         
-        return {}, 201
+    @jwt_required()
+    def get(self):
+        current_user = get_jwt_identity()
+
+        busca = es.search(
+            index='fontes_receitas', 
+            body={
+                'query': {
+                    'match': {
+                        'user': current_user
+                    }
+                }
+            }
+        )
+        if(busca['hits']['total']['value'] < 1):
+            return '', 204
+        
+        return jsonify(busca['hits']['hits'])
 
 ## Rotas
 
 api.add_resource(User, '/users/')
 api.add_resource(Login, '/login')
-api.add_resource(FonteReceita, '/receitas/fonte')
+api.add_resource(FonteReceita, '/receitas/fontes')
 
-app.run()
+if __name__ == '__main__':
+    app.run(debug=True)
