@@ -6,6 +6,7 @@ from .config import Config
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    app.config['JWT_SECRET_KEY'] = 'nY5AQz37ZZIfMev9nY5AQz37ZZIfMev9'
 
     es = conect_elastic(app)
 

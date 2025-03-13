@@ -1,5 +1,6 @@
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify, abort
 from flask_restful import Resource, Api
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
 from config import create_app
 from config import conect_elastic
 from uuid import uuid4
@@ -7,51 +8,98 @@ from uuid import uuid4
 app = create_app()
 es = conect_elastic(app)
 api = Api(app)
+jwt = JWTManager(app)
+
 
 ## Controllers
 class User(Resource):
     def post(self):
-        data = request.get_json()  # Quando o corpo da requisição é JSON
+        data = request.get_json()
         
-        # Verificando se os campos necessários existem na requisição
         nome = data.get('nome')
         email = data.get('email')
         senha = data.get('senha')
         
         if not nome or not email or not senha:
-            return {"message": "Todos os campos são obrigatórios!"}, 400
+            return {'message': 'Todos os campos são obrigatórios!'}, 400
         
         busca = es.search(
-            index="users", 
+            index='users', 
             body={
-                "query": {
-                    "match": {
-                        "email": email
+                'query': {
+                    'match': {
+                        'email': email
                     }
                 }
             }
         )
         
+        print(busca['hits']['hits'][0]['_source'].get('email'))
         if(busca['hits']['total']['value'] > 0):
-            return {"message": "Email já cadastrado!"}, 409
-        
+            return {'message': 'Email já cadastrado!'}, 409
         
         user_id = str(uuid4())
         
         user_data = {
-            "nome": nome,
-            "email": email,
-            "senha": senha
+            'nome': nome,
+            'email': email,
+            'senha': senha
         }
         
         try:
             #es.index(index='users', id=user_id, document=user_data) 
-            return jsonify({"message": "Usuário criado com sucesso!", "user_id": user_id})
+            return jsonify({'message': 'Usuário criado com sucesso!', 'user_id': user_id})
         except Exception as e:
-            return {"message": f"Erro ao inserir dados no Elasticsearch: {e}"}, 500
+            return {'message': f'Erro ao inserir dados no Elasticsearch: {e}'}, 500
+        
+class Login(Resource):
+    def post(self):
+        data = request.get_json()
+        
+        email = data.get('email')
+        senha = data.get('senha')
+
+        if not email or not senha:
+            return {"message": "Email ou senha em Branco!"}, 400
+        
+        busca = es.search(
+            index='users', 
+            body={
+                'query': {
+                    'bool': {
+                        'must': [
+                            {'match': {'email': email}},
+                            {'match': {'senha': senha}}
+                        ]
+                    }
+                }
+            }
+        )
+
+        if(busca['hits']['total']['value'] < 1 or busca['hits']['hits'][0]['_source'].get('email') != email or busca['hits']['hits'][0]['_source'].get('senha') != senha):
+            return {'message': 'Credencias inválidas!'}, 401
+
+        token = create_access_token(identity=busca['hits']['hits'][0]['_id'])
+
+        return {'auth': token, 'message': 'Login bem sucedido!'}, 200
+    
+class FonteReceita(Resource):
+    @jwt_required() 
+    def post(self):
+        data = request.get_json()
+
+        current_user = get_jwt_identity()
+
+        font_receita = {
+            'user': current_user,
+        }
+        
+        return {}, 201
 
 ## Rotas
 
 api.add_resource(User, '/users/')
+api.add_resource(Login, '/login')
+api.add_resource(FonteReceita, '/receitas/fonte')
 
 app.run()
