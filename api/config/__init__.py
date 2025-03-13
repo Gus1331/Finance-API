@@ -7,12 +7,7 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    es = Elasticsearch(
-        [
-            {'host': app.config['ELASTICSEARCH_HOST'], 
-            'port': app.config['ELASTICSEARCH_PORT'], 
-            'scheme': 'http'}
-        ], basic_auth=(app.config['ELASTIC_USERNAME'], app.config['ELASTIC_PASSWORD']))
+    es = conect_elastic(app)
 
     try:
         print(es.info())
@@ -21,3 +16,11 @@ def create_app():
         exit(1)
         
     return app
+
+def conect_elastic(app):
+    return Elasticsearch(
+        [
+            {'host': app.config['ELASTICSEARCH_HOST'], 
+            'port': app.config['ELASTICSEARCH_PORT'], 
+            'scheme': 'http'}
+        ], basic_auth=(app.config['ELASTIC_USERNAME'], app.config['ELASTIC_PASSWORD']))
