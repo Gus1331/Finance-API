@@ -130,12 +130,60 @@ class FonteReceita(Resource):
             return '', 204
         
         return jsonify(busca['hits']['hits'])
+    
+class TipoDespesa(Resource):
+    @jwt_required() 
+    def post(self):
+        data = request.get_json()
 
+        nome = data.get('nome')
+        fixo = data.get('fixo')
+
+        if not isinstance(nome, str) or not isinstance(fixo, bool):
+            abort(400)
+
+        current_user = get_jwt_identity()
+
+        font_receita = {
+            'user': current_user,
+            'nome': nome,
+            'fixo': fixo,
+            'dtRegistro': datetime.now()
+        }
+
+        try:
+            entityId = str(uuid4())
+            es.index(index='tipos_despesas', id=entityId, document=font_receita)
+            font_receita['_id'] = entityId
+            return jsonify(font_receita)
+        except Exception as e:
+            return {'message': f'Erro ao inserir dados no Elasticsearch: {e}'}, 500
+        
+    @jwt_required()
+    def get(self):
+        current_user = get_jwt_identity()
+
+        busca = es.search(
+            index='tipos_despesas', 
+            body={
+                'query': {
+                    'match': {
+                        'user': current_user
+                    }
+                }
+            }
+        )
+        if(busca['hits']['total']['value'] < 1):
+            return '', 204
+        
+        return jsonify(busca['hits']['hits'])
+    
 ## Rotas
 
 api.add_resource(User, '/users/')
 api.add_resource(Login, '/login')
 api.add_resource(FonteReceita, '/receitas/fontes')
+api.add.resource(TipoDespesa, 'despesas/tipos')
 
 if __name__ == '__main__':
     app.run(debug=True)
