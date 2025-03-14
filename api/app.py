@@ -4,7 +4,7 @@ from flask_jwt_extended import JWTManager, jwt_required, create_access_token, ge
 from config import create_app
 from config import conect_elastic
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, date
 
 app = create_app()
 es = conect_elastic(app)
@@ -144,7 +144,7 @@ class TipoDespesa(Resource):
 
         current_user = get_jwt_identity()
 
-        font_receita = {
+        tipo_despesa = {
             'user': current_user,
             'nome': nome,
             'fixo': fixo,
@@ -153,9 +153,9 @@ class TipoDespesa(Resource):
 
         try:
             entityId = str(uuid4())
-            es.index(index='tipos_despesas', id=entityId, document=font_receita)
-            font_receita['_id'] = entityId
-            return jsonify(font_receita)
+            es.index(index='tipos_despesas', id=entityId, document=tipo_despesa)
+            tipo_despesa['_id'] = entityId
+            return jsonify(tipo_despesa)
         except Exception as e:
             return {'message': f'Erro ao inserir dados no Elasticsearch: {e}'}, 500
         
@@ -178,12 +178,69 @@ class TipoDespesa(Resource):
         
         return jsonify(busca['hits']['hits'])
     
+class Receitas(Resource):
+    @jwt_required() 
+    def post(self):
+        data = request.get_json()
+
+        valor = data.get('valor')
+        fonteId = data.get('fonteId')
+        dtReceita = data.get('dtRaceita')
+
+        if not isinstance(dtReceita, str) or not isinstance(valor, float) or not(fonteId, str):
+            abort(400)
+
+        try:
+            dtReceita = date.fromisoformat(dtReceita)
+        except Exception as e:
+            print(f'Erro convertendo string para data: {e}')
+            abort(400)
+
+        current_user = get_jwt_identity()
+
+        receita = {
+            'user': current_user,
+            'valor': valor,
+            'fonteId': fonteId,
+            'dtReceita': dtReceita,
+            'dtRegistro': datetime.now()
+        }
+
+        try:
+            entityId = str(uuid4())
+            es.index(index='receitas', id=entityId, document=receita)
+            receita['_id'] = entityId
+            return jsonify(receita)
+        except Exception as e:
+            return {'message': f'Erro ao inserir dados no Elasticsearch: {e}'}, 500
+        
+    @jwt_required()
+    def get(self):
+        current_user = get_jwt_identity()
+
+        busca = es.search(
+            index='receitas', 
+            body={
+                'query': {
+                    'match': {
+                        'user': current_user
+                    }
+                }
+            }
+        )
+        if(busca['hits']['total']['value'] < 1):
+            return '', 204
+        
+        return jsonify(busca['hits']['hits'])
+
 ## Rotas
 
 api.add_resource(User, '/users/')
 api.add_resource(Login, '/login')
+api.add_resource(Receitas , '/receitas')
 api.add_resource(FonteReceita, '/receitas/fontes')
-api.add.resource(TipoDespesa, 'despesas/tipos')
+api.add_resource(TipoDespesa, '/despesas/tipos')
+#api.add_resource(Despesas, '/despesas')
 
 if __name__ == '__main__':
     app.run(debug=True)
