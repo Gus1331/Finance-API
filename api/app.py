@@ -232,6 +232,62 @@ class Receitas(Resource):
             return '', 204
         
         return jsonify(busca['hits']['hits'])
+    
+class Despesas(Resource):
+    @jwt_required() 
+    def post(self):
+        data = request.get_json()
+
+        valor = data.get('valor')
+        tipoId = data.get('tipoId')
+        dtReceita = data.get('dtRaceita')
+
+        if not isinstance(dtReceita, str) or not isinstance(valor, float) or not(fonteId, str):
+            abort(400)
+
+        try:
+            dtReceita = date.fromisoformat(dtReceita)
+        except Exception as e:
+            print(f'Erro convertendo string para data: {e}')
+            abort(400)
+
+        current_user = get_jwt_identity()
+
+        despesa = {
+            'user': current_user,
+            'valor': valor,
+            'tipoId': tipoId,
+            'dtReceita': dtReceita,
+            'dtRegistro': datetime.now()
+        }
+
+        try:
+            entityId = str(uuid4())
+            es.index(index='despesas', id=entityId, document=despesa)
+            despesa['_id'] = entityId
+            return jsonify(despesa)
+        except Exception as e:
+            return {'message': f'Erro ao inserir dados no Elasticsearch: {e}'}, 500
+        
+    @jwt_required()
+    def get(self):
+        current_user = get_jwt_identity()
+
+        busca = es.search(
+            index='despesas', 
+            body={
+                'query': {
+                    'match': {
+                        'user': current_user
+                    }
+                }
+            }
+        )
+        if(busca['hits']['total']['value'] < 1):
+            return '', 204
+        
+        return jsonify(busca['hits']['hits'])
+
 
 ## Rotas
 
@@ -240,7 +296,7 @@ api.add_resource(Login, '/login')
 api.add_resource(Receitas , '/receitas')
 api.add_resource(FonteReceita, '/receitas/fontes')
 api.add_resource(TipoDespesa, '/despesas/tipos')
-#api.add_resource(Despesas, '/despesas')
+api.add_resource(Despesas, '/despesas')
 
 if __name__ == '__main__':
     app.run(debug=True)
