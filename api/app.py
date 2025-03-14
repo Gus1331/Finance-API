@@ -5,12 +5,25 @@ from config import create_app
 from config import conect_elastic
 from uuid import uuid4
 from datetime import datetime, date
+from schedule import configurar_agendamento
 
 app = create_app()
 es = conect_elastic(app)
 api = Api(app)
 jwt = JWTManager(app)
 
+## Indices
+try:
+    es.options.
+    es.indices.create(index='users', ignore=400)
+    es.indices.create(index='moedas', ignore=400)
+    es.indices.create(index='despesas', ignore=400)
+    es.indices.create(index='receitas', ignore=400)
+    es.indices.create(index='fontes_receitas', ignore=400)
+    es.indices.create(index='tipos_despesas', ignore=400)
+except Exception as e:
+    print(f'Falha ao criar os indices: {e}')
+    exit(1)
 
 ## Controllers
 class User(Resource):
@@ -48,7 +61,7 @@ class User(Resource):
         }
         
         try:
-            #es.index(index='users', id=user_id, document=user_data) 
+            es.index(index='users', id=user_id, document=user_data) 
             return jsonify({'message': 'Usuário criado com sucesso!', 'user_id': user_id})
         except Exception as e:
             return {'message': f'Erro ao inserir dados no Elasticsearch: {e}'}, 500
@@ -287,6 +300,8 @@ class Despesas(Resource):
             return '', 204
         
         return jsonify(busca['hits']['hits'])
+    
+
 
 
 ## Rotas
@@ -299,4 +314,5 @@ api.add_resource(TipoDespesa, '/despesas/tipos')
 api.add_resource(Despesas, '/despesas')
 
 if __name__ == '__main__':
+    configurar_agendamento(es)
     app.run(debug=True)
