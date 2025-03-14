@@ -242,7 +242,7 @@ class Despesas(Resource):
         tipoId = data.get('tipoId')
         dtReceita = data.get('dtRaceita')
 
-        if not isinstance(dtReceita, str) or not isinstance(valor, float) or not(fonteId, str):
+        if not isinstance(dtReceita, str) or not isinstance(valor, float) or not(tipoId, str):
             abort(400)
 
         try:
