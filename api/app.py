@@ -4,17 +4,18 @@ from flask_jwt_extended import JWTManager, jwt_required, create_access_token, ge
 from config import create_app
 from config import conect_elastic
 from uuid import uuid4
+from flask_cors import CORS 
 from datetime import datetime, date
 from schedule import configurar_agendamento
 
 app = create_app()
+CORS(app)
 es = conect_elastic(app)
 api = Api(app)
 jwt = JWTManager(app)
 
 ## Indices
 try:
-    es.options.
     es.indices.create(index='users', ignore=400)
     es.indices.create(index='moedas', ignore=400)
     es.indices.create(index='despesas', ignore=400)
@@ -48,7 +49,6 @@ class User(Resource):
             }
         )
         
-        print(busca['hits']['hits'][0]['_source'].get('email'))
         if(busca['hits']['total']['value'] > 0):
             return {'message': 'Email já cadastrado!'}, 409
         
@@ -306,7 +306,7 @@ class Despesas(Resource):
 
 ## Rotas
 
-api.add_resource(User, '/users/')
+api.add_resource(User, '/users')
 api.add_resource(Login, '/login')
 api.add_resource(Receitas , '/receitas')
 api.add_resource(FonteReceita, '/receitas/fontes')

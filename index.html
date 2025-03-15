@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance API - Operações</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        input,
+        textarea {
+            width: 95%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        #error {
+            color: red;
+            margin-top: 20px;
+        }
+    </style>
+
+
+    <script defer>
+        const usuarioLogado = localStorage.getItem('authToken');
+
+        function Loadpage() {
+            usuarioLogado ? openMainContainer(): openLogin();
+        }
+        
+        function openMainContainer(){
+            register.style.display = "none";
+            login.style.display = "none";
+            mainContainer.style.display = "block";
+            error.style.display = "none";
+        }
+
+        function openLogin() {
+            login.style.display = "block";
+            register.style.display = "none";
+            mainContainer.style.display = "none";
+            error.style.display = "none";
+        }
+
+        function openRegister() {
+            login.style.display = "none";
+            register.style.display = "block";
+            mainContainer.style.display = "none";
+            error.style.display = "none";
+        }
+
+        async function criarUsuario() {
+            let nome = nameInput.value;
+            let email = emailInput.value;
+            let senha = pass1Input.value;
+
+            if (senha != pass2Input.value || nome == "" || email == '' || senha == '') {
+                throw new Error("Senhas não conferem");
+                return;
+            }
+
+            const response = await fetch('http://localhost:5000/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    'nome': nome,
+                    'email': email,
+                    'senha': senha
+                }),
+            });
+
+            openLogin();
+        }
+
+        async function loginPost() {
+            let email = emailLoginInput.value;
+            let senha = passLoginInput.value;
+
+            if (email == '' || senha == '') {
+                throw new Error("Campos em Branco!");
+                return;
+            }
+
+            const response = await fetch('http://localhost:5000/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    'email': email,
+                    'senha': senha
+                }),
+            });
+
+            response.json().then(data => {
+                console.log("Data: " + JSON.stringify(data));
+                console.log("auth: " + data.auth)
+                localStorage.setItem('authToken', JSON.stringify(data.auth));
+            }).then(openMainContainer())
+        }
+    </script>
+
+</head>
+
+<body onload="Loadpage();">
+
+    <h1>Operações com Finance API</h1>
+    <hr>
+    <div class="container" id="register">
+        <h2>Cadastro</h2>
+        <input type="text" id="nameInput" placeholder="Nome" />
+        <input type="email" id="emailInput" placeholder="Email" />
+        <input type="text" id="pass1Input" placeholder="Senha" />
+        <input type="text" id="pass2Input" placeholder="Repita a senha" />
+        <button class="btn" onclick="criarUsuario();">Cadastrar</button>
+        <span style="margin-left: 10px; color: blue; text-decoration: underline; cursor: pointer;"
+            onclick="openLogin();">Já tenho conta</span>
+    </div>
+    <div class="container" id="login">
+        <h2>Login</h2>
+        <input type="email" id="emailLoginInput" placeholder="Email" />
+        <input type="text" id="passLoginInput" placeholder="Senha" />
+        <button class="btn" onclick="loginPost();">Acessar</button>
+        <span style="margin-left: 10px; color: blue; text-decoration: underline; cursor: pointer;"
+            onclick="openRegister();">Não tenho conta</span>
+    </div>
+
+
+    <div class="container" id="mainContainer">
+        <div id="result"></div>
+        <div id="error"></div>
+
+        <h2>Buscar Dados Financeiros</h2>
+        <button class="btn" id="fetchDataBtn">Buscar</button>
+
+
+        <h2>Atualizar Registro</h2>
+        <input type="text" id="updateId" placeholder="ID do Registro" />
+        <input type="text" id="newName" placeholder="Novo Nome" />
+        <input type="number" id="newValue" placeholder="Novo Valor" />
+        <button class="btn" id="updateDataBtn">Atualizar</button>
+
+        <h2>Excluir Registro</h2>
+        <input type="text" id="deleteId" placeholder="ID para Excluir" />
+        <button class="btn" id="deleteDataBtn">Excluir</button>
+    </div>
+
+</body>
+
+</html>
