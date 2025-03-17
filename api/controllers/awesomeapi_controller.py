@@ -1,7 +1,12 @@
 import requests
 from uuid import uuid4
 
-def leitura(es):
+from config import conect_elastic
+from config import create_app
+
+def leitura():
+    app = create_app()
+    es = conect_elastic(app)
     print('leitura: ')
     try:
         

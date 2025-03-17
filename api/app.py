@@ -198,7 +198,7 @@ class Receitas(Resource):
 
         valor = data.get('valor')
         fonteId = data.get('fonteId')
-        dtReceita = data.get('dtRaceita')
+        dtReceita = data.get('dtReceita')
 
         if not isinstance(dtReceita, str) or not isinstance(valor, float) or not(fonteId, str):
             abort(400)
@@ -253,13 +253,13 @@ class Despesas(Resource):
 
         valor = data.get('valor')
         tipoId = data.get('tipoId')
-        dtReceita = data.get('dtRaceita')
+        dtDespesa = data.get('dtDespesa')
 
-        if not isinstance(dtReceita, str) or not isinstance(valor, float) or not(tipoId, str):
+        if not isinstance(dtDespesa, str) or not isinstance(valor, float) or not(tipoId, str):
             abort(400)
 
         try:
-            dtReceita = date.fromisoformat(dtReceita)
+            dtDespesa = date.fromisoformat(dtDespesa)
         except Exception as e:
             print(f'Erro convertendo string para data: {e}')
             abort(400)
@@ -270,7 +270,7 @@ class Despesas(Resource):
             'user': current_user,
             'valor': valor,
             'tipoId': tipoId,
-            'dtReceita': dtReceita,
+            'dtDespesa': dtDespesa,
             'dtRegistro': datetime.now()
         }
 
@@ -314,5 +314,5 @@ api.add_resource(TipoDespesa, '/despesas/tipos')
 api.add_resource(Despesas, '/despesas')
 
 if __name__ == '__main__':
-    configurar_agendamento(es)
+    configurar_agendamento()
     app.run(debug=True)
