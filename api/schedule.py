@@ -3,7 +3,6 @@ from controllers.awesomeapi_controller import leitura
 import time
 
 def configurar_agendamento():
-    print('configurado')
     scheduler = BackgroundScheduler()
     scheduler.add_job(leitura, 'interval', seconds=86400)
 
