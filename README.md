@@ -37,6 +37,9 @@ A API tem um shedule para armazenar dados de cotação diariamente de BRL, USD, 
 ## Listagem de receita em tabela (Kibana)
 - ![Listagem de receitas em tabela no Kibana](readme-imgs/receitas-table.png)
 
+## Dashboard (Kibana)
+- ![Dashboard dentro do Kibana demosntrando gráficos anteriores](readme-imgs/dash.png)
+
 # Requisições
 ### **Requisição POST para criar um usuário**
 
